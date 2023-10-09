@@ -1,23 +1,29 @@
+//importing the required libraries
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266HTTPClient.h>
 
-const char* ssid = "Veris";
-const char* password = "veris@1234";
+//Both application and the ESP module should be connected to the same wifi network
+const char* ssid = "Veris"; //wWifi SSID
+const char* password = "veris@1234"; //Wifi Password
 
 const int greenPin = 5;
 const int bluePin = 4;
 
-
+// the active port to receive command on
 ESP8266WebServer server(80);
 
 
 void setup() {
+
+//setting the output pins on which the LED strips will bw connected
+// initially keeping the strips off
   pinMode(greenPin, OUTPUT);
   digitalWrite(greenPin, LOW);
   pinMode(bluePin, OUTPUT);
   digitalWrite(bluePin, LOW);
-
+  
+// setting the Baud rate
   Serial.begin(115200);
   WiFi.begin(ssid, password);
   Serial.println("");
@@ -26,6 +32,8 @@ void setup() {
     delay(500);
     Serial.print(".");
   }
+
+//printing the IP address of ESP8266
 
   Serial.println("");
   Serial.print("Connected to ");
@@ -42,7 +50,7 @@ void loop() {
 
 }
 
-
+// controlling the LED strips according to the command received
 
 void handleControlRelay() {
   String action = server.arg("plain");
@@ -59,24 +67,7 @@ void handleControlRelay() {
     Serial.println("Received Signal: 0");
     Serial.println("Not Available");
     server.send(200, "text/plain", "Relay turned off");
-  } else if (action == "2") {
-    Serial.println("Received Signal: 2");
-    Serial.println("About to be available");
-    digitalWrite(greenPin, LOW);
-    digitalWrite(bluePin, HIGH);
-    delay(4000);
-    digitalWrite(greenPin, HIGH);
-    digitalWrite(bluePin, LOW);
-    delay(4000);
-    digitalWrite(greenPin, LOW);
-    digitalWrite(bluePin, HIGH);
-    delay(4000);
-    digitalWrite(greenPin, HIGH);
-    digitalWrite(bluePin, LOW);
-    delay(4000);
-    digitalWrite(greenPin, LOW);
-    digitalWrite(bluePin, HIGH);
-
+  }
     server.send(200, "text/plain", "Relay toggled for 1 second");
   } else {
     server.send(400, "text/plain", "Invalid action");
