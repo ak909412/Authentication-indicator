@@ -1,0 +1,8 @@
+The below code is using the Local network transmission to transmit the command and stablis the connection between the application and ESP module
+The below code must be uploaded to the NodeMCU ESP 8266.
+The Softwae used to upload the code is ARDUINO IDE
+The fllowing libraries must be installed before compiling the code:
+  ESP8266WiFi
+  ESP8266WebServer
+  ESP8266HTTPClient
+Update the IP of ESP address in the API in the application 
