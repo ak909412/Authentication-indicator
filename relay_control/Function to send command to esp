@@ -1,0 +1,35 @@
+  function sendSignalsToEsp(signal) {
+    const espIp = "192.168.1.205";   #change the IP address of the esp according to the esp
+    try {
+      const payload = JSON.stringify({ signal });
+      const headers = { "Content-Type": "application/json" };
+
+      axios
+        .post(`http://${espIp}:80/api/receive_signal`, payload, { headers })
+        .then((response) => {
+          if (response.status === 200) {
+            console.log(`Signal ${signal} sent to ESP at IP: ${espIp}`);
+          } else {
+            console.log(`Failed to send signal to ESP at IP: ${espIp}`);
+            console.log(`Response status code: ${response.status}`);
+          }
+        })
+        .catch((error) => {
+          console.log(`Error sending signal to ESP at IP ${espIp}: ${error}`);
+        });
+    } catch (error) {
+      console.log(`Error sending signal to ESP at IP ${espIp}: ${error}`);
+    }
+  }
+
+
+# example use of the function
+  const fetchAndUpdateStatus = async () => {
+    try {
+      const authentication = (() => {
+        const isAllowed = isUserAllowed(authenticate);
+#if user is allowed send "1" else send "0"
+        let signal = `${isAllowed ? 1 : 0}`;
+
+        sendSignalsToEsp(signal);
+      });
