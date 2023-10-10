@@ -1,0 +1,59 @@
+import React, { useEffect, useState } from "react";
+import { AppRegistry } from "react-native";
+import { Image, ImageBackground, StyleSheet, Text, View } from "react-native";
+
+import MQTT from "sp-react-native-mqtt";
+
+const App = () => {
+
+  // MQTT configuration
+  const client = new MQTT.Client("mqtt://192.168.1.221:1883", "clientId");
+
+  client
+    .connect()
+    .then(() => {
+      console.log("Connected to MQTT server");
+    })
+    .catch((error) => {
+      console.error("Error connecting to MQTT server:", error);
+    });
+
+  const publishSignalToMqtt = (signal) => {
+    client.publish("Receive", signal);
+    console.log(`Signal ${signal} published to MQTT server`);
+  };
+
+  const fetchAndUpdateStatus = async () => {
+    try {
+      const Data = (() => {
+        const isAutorized = isAllowed(user);
+        let signal = ` ${isAllowed ? 1 : 0}`;
+
+
+        publishSignalToMqtt(signal); // Publish the signal to MQTT
+        return { availability: isAllowed };
+      });
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+
+  
+  const isAllowed = (user) => {
+    if (!user) {
+      return false;
+    }
+  };
+
+  return (
+    <NavigationContainer>
+      <DeskDataProvider>
+        <MainStackNavigator />
+      </DeskDataProvider>
+    </NavigationContainer>
+  );
+};
+
+AppRegistry.registerComponent("MyApp", () => App);
+
+export default App;
