@@ -1,8 +1,10 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
+//wifi credentials
 const char* ssid = "My phone";
 const char* password = "123456789o";
+//MQTT cloud url and current running port
 const char* mqttServer = "f5b07f1fc11b4a6ea6905a9e1dd894f7.s1.eu.hivemq.cloud";
 const int mqttPort = 8883;
 const int greenPin = 5;
@@ -37,11 +39,12 @@ void setup() {
     }
   }
 
-  // Subscribe to the MQTT topic
+  // subscribe to the MQTT topic
   client.subscribe("Receive");
 }
 
 void handleMessage(char* topic, byte* payload, unsigned int length) {
+  //condition to act upon
   if (strncmp((char*)payload, "1", length) == 0) {
     digitalWrite(greenPin, HIGH);
     digitalWrite(bluePin, LOW);
