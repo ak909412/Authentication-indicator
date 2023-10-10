@@ -1,0 +1,2 @@
+The above code use MQTT as a intermidate to connect the React Native Application to the Esp8266.
+The Application will publist the command to the MQTT (here HiveMQ is used as MQTT Broker) on a specific topic and esp will receive the command through the server and act accordingly
