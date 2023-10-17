@@ -1,76 +1,128 @@
 #include <ESP8266WiFi.h>
+#include <WiFiClientSecure.h>
 #include <PubSubClient.h>
+#include <ArduinoJson.h>
+#include <time.h>
+#include "secrets.h"
 
-//wifi credentials
-const char* ssid = "My phone";
-const char* password = "123456789o";
-//MQTT cloud url and current running port
-const char* mqttServer = "f5b07f1fc11b4a6ea6905a9e1dd894f7.s1.eu.hivemq.cloud";
-const int mqttPort = 8883;
-const int greenPin = 5;
-const int bluePin = 4;
+#define TIME_ZONE -5
 
-WiFiClient espClient;
-PubSubClient client(espClient);
+WiFiClientSecure net;
+BearSSL::X509List cert(cacert);
+BearSSL::X509List client_crt(client_cert);
+BearSSL::PrivateKey key(privkey);
 
-void setup() {
-  Serial.begin(115200);
-  pinMode(greenPin, OUTPUT);
-  pinMode(bluePin, OUTPUT);
-  digitalWrite(greenPin, LOW);
-  digitalWrite(bluePin, LOW);
+PubSubClient client(net);
 
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
+#define AWS_IOT_SUBSCRIBE_TOPIC "esp8266/sub"
+
+// Define GPIO pins
+const int pin5 = 5;  
+const int pin12 = 12; 
+
+void NTPConnect(void)
+{
+  Serial.print("Setting time using SNTP");
+  configTime(TIME_ZONE * 3600, 0 * 3600, "pool.ntp.org", "time.nist.gov");
+  time_t now = time(nullptr);
+  while (now < 1510592825) 
+  {
+    delay(500);
+    Serial.print(".");
+    now = time(nullptr);
+  }
+  Serial.println("done!");
+  struct tm timeinfo;
+  gmtime_r(&now, &timeinfo);
+  Serial.print("Current time: ");
+  Serial.print(asctime(&timeinfo));
+}
+
+void messageReceived(char *topic, byte *payload, unsigned int length)
+{
+  Serial.print("Received [");
+  Serial.print(topic);
+  Serial.print("]: ");
+  
+  if (payload[0] == '1') {
+    digitalWrite(pin5, HIGH);
+    digitalWrite(pin12, LOW);
+    Serial.println("green light");
+    delay(100);
+    digitalWrite(pin5, LOW);
+  } else if (payload[0] == '0') {
+    digitalWrite(pin5, LOW);
+    digitalWrite(pin12, HIGH);
+    Serial.println("red light");
+    delay(100);
+    digitalWrite(pin12, LOW);
+  } else {
+    digitalWrite(pin5, LOW);
+    digitalWrite(pin12, LOW);
+    Serial.println("Invalid message received");
+  }
+}
+
+void connectAWS()
+{
+  delay(3000);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  Serial.println(String("Attempting to connect to SSID: ") + String(WIFI_SSID));
+
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.print(".");
     delay(1000);
-    Serial.println("Connecting to WiFi...");
-  }
-  Serial.println("Connected to WiFi");
-
-  client.setServer(mqttServer, mqttPort);
-  while (!client.connected()) {
-    if (client.connect("ESP8266Client")) {
-      Serial.println("Connected to MQTT Broker");
-    } else {
-      Serial.print("Failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" Trying again in 5 seconds");
-      delay(5000);
-    }
   }
 
-  // subscribe to the MQTT topic
-  client.subscribe("Receive");
+  NTPConnect();
+
+  net.setTrustAnchors(&cert);
+  net.setClientRSACert(&client_crt, &key);
+
+  client.setServer(MQTT_HOST, 8883);
+  client.setCallback(messageReceived);
+
+  Serial.println("Connecting to AWS IoT");
+
+  while (!client.connect(THINGNAME))
+  {
+    Serial.print(".");
+    delay(1000);
+  }
+
+  if (!client.connected())
+  {
+    Serial.println("AWS IoT Timeout!");
+    return;
+  }
+
+  // Subscribe to a topic
+  client.subscribe(AWS_IOT_SUBSCRIBE_TOPIC);
+
+  Serial.println("AWS IoT Connected!");
 }
 
-void handleMessage(char* topic, byte* payload, unsigned int length) {
-  //condition to act upon
-  if (strncmp((char*)payload, "1", length) == 0) {
-    digitalWrite(greenPin, HIGH);
-    digitalWrite(bluePin, LOW);
-    Serial.println("Received Signal: 1");
-    Serial.println("Available");
-  } else if (strncmp((char*)payload, "0", length) == 0) {
-    digitalWrite(greenPin, LOW);
-    digitalWrite(bluePin, HIGH);
-    Serial.println("Received Signal: 0");
-    Serial.println("Not Available");
-  }
+void setup()
+{
+  Serial.begin(115200);
+  
+  pinMode(pin5, OUTPUT);
+  pinMode(pin12, OUTPUT);
+  
+  connectAWS();
 }
 
-void loop() {
-  if (!client.connected()) {
-    Serial.println("Reconnecting to MQTT Broker");
-    if (client.connect("ESP8266Client")) {
-      Serial.println("Reconnected to MQTT Broker");
-      client.subscribe("Receive");
-    } else {
-      Serial.print("Failed to reconnect, rc=");
-      Serial.print(client.state());
-      Serial.println(" Trying again in 5 seconds");
-      delay(5000);
-      return;
-    }
+void loop()
+{
+  if (!client.connected())
+  {
+    connectAWS();
   }
-  client.loop();
+  else
+  {
+    client.loop();
+  }
 }
