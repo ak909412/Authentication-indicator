@@ -1,59 +1,30 @@
-import React, { useEffect, useState } from "react";
-import { AppRegistry } from "react-native";
-import { Image, ImageBackground, StyleSheet, Text, View } from "react-native";
+AWS.config.update({
+    accessKeyId: "AKIAUGGDLBVE6ABVA5NK",
+    secretAccessKey: "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",
+    region: "ap-south-1", 
+  });
 
-import MQTT from "sp-react-native-mqtt";
+  const iotdata = new AWS.IotData({
+    endpoint: "a1z4x5kskjdqlv-ats.iot.ap-south-1.amazonaws.com",
+  });
 
-const App = () => {
-
-  // MQTT configuration
-  const client = new MQTT.Client("mqtt://192.168.1.221:1883", "clientId");
-
-  client
-    .connect()
-    .then(() => {
-      console.log("Connected to MQTT server");
-    })
-    .catch((error) => {
-      console.error("Error connecting to MQTT server:", error);
-    });
-
-  const publishSignalToMqtt = (signal) => {
-    client.publish("Receive", signal);
-    console.log(`Signal ${signal} published to MQTT server`);
-  };
-
-  const fetchAndUpdateStatus = async () => {
+  const sendSignalToAWSIoT = async (signal) => {
     try {
-      const Data = (() => {
-        const isAutorized = isAllowed(user);
-        let signal = ` ${isAllowed ? 1 : 0}`;
+      const params = {
+        topic: "esp8266/sub", // Replace with your AWS IoT topic
+        payload: JSON.stringify({ message: signal }),
+        qos: 0,
+      };
 
-
-        publishSignalToMqtt(signal); // Publish the signal to MQTT
-        return { availability: isAllowed };
-      });
+      await iotdata.publish(params).promise();
+      console.log(`Message ${signal} sent to AWS IoT`);
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error sending message to AWS IoT:", error);
     }
+
+    return signal;
   };
 
-  
-  const isAllowed = (user) => {
-    if (!user) {
-      return false;
-    }
-  };
+// To use the function 
 
-  return (
-    <NavigationContainer>
-      <DeskDataProvider>
-        <MainStackNavigator />
-      </DeskDataProvider>
-    </NavigationContainer>
-  );
-};
-
-AppRegistry.registerComponent("MyApp", () => App);
-
-export default App;
+ sendSignalToAWSIoT(signal);
