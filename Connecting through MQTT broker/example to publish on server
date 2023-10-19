@@ -1,6 +1,6 @@
 AWS.config.update({
-    accessKeyId: "AKIAUGGDLBVE6ABVA5NK",
-    secretAccessKey: "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",
+    accessKeyId: "************************",
+    secretAccessKey: "****************************",
     region: "ap-south-1", 
   });
 
